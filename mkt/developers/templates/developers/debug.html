@@ -1,0 +1,14 @@
+{% extends 'developers/base_impala.html' %}
+{% set title = _('Debug') %}
+
+{% block title %}{{ hub_page_title(title) }}{% endblock %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <section class="primary">
+    <div class="island">
+      <p>See <a href="{{ urls['es'] }}">elastic search entry</a>.</p>
+      <p>Buy <a href="http://webpay.jaredkerim.com/mozpay/?req={{ pay_request }}">without mozPay</a>.</p>
+    </div>
+  </section>
+{% endblock %}
