@@ -134,6 +134,69 @@ def _prepare_pay(request, addon):
     return {'webpayJWT': jwt_, 'contribStatusURL': url}
 
 
+def _prepare_pay_inapp(request, inapp):
+    """
+    Prepare a JWT to pass into navigator.pay() for in app purchaseable item
+    """
+    log.debug('Starting purchase of inapp: %s' % (inapp.pk,))
+    contrib = Contribution.objects.create(addon_id=inapp.webapp.id,
+                                          amount=None,
+                                          source=request.REQUEST.get(
+                                              'src', ''),
+                                          source_locale=request.LANG,
+                                          uuid=str(uuid.uuid4()),
+                                          type=amo.CONTRIB_PENDING,
+                                          paykey=None,
+                                          price_tier=inapp.price,
+                                          client_data=ClientData.get_or_create(
+                                              request))
+    log.debug('Storing contrib for uuid: %s' % contrib.uuid)
+
+    # Until atob() supports encoded HTML we are stripping all tags.
+    # See bug 831524
+    app_description = bleach.clean(unicode(inapp.webapp.description),
+                                   strip=True, tags=[])
+
+    acct = inapp.webapp.app_payment_account.payment_account
+    seller_uuid = acct.solitude_seller.uuid
+    issued_at = calendar.timegm(time.gmtime())
+    icons = {64: absolutify(inapp.logo_url)}
+
+    req = {
+        'iss': settings.APP_PURCHASE_KEY,
+        'typ': settings.APP_PURCHASE_TYP,
+        'aud': settings.APP_PURCHASE_AUD,
+        'iat': issued_at,
+        'exp': issued_at + 3600,  # expires in 1 hour
+        'request': {
+            'name': unicode(inapp.name),
+            'description': app_description,
+            'pricePoint': inapp.price.name,
+            'id': make_ext_id(inapp.pk),
+            'postbackURL': absolutify(reverse('webpay.postback')),
+            'chargebackURL': absolutify(reverse('webpay.chargeback')),
+            'productData': urlencode({'contrib_uuid': contrib.uuid,
+                                      'seller_uuid': seller_uuid,
+                                      'addon_id': inapp.webapp.pk,
+                                      'inapp_id': inapp.pk,
+                                      'application_size': None}),
+            'icons': icons,
+        }
+    }
+
+    jwt_ = sign_webpay_jwt(req)
+    log.debug('Preparing webpay JWT for inapp %s: %s' % (inapp, jwt_))
+    app_pay_cef.log(request, 'Preparing JWT', 'preparing_jwt',
+                    'Preparing JWT for: %s' % (inapp.pk), severity=3)
+
+    if request.API:
+        url = reverse('webpay-status', kwargs={'uuid': contrib.uuid})
+    else:
+        url = reverse('webpay.pay_status', args=[inapp.webapp.app_slug,
+                                                 contrib.uuid])
+    return {'webpayJWT': jwt_, 'contribStatusURL': url}
+
+
 @login_required
 @addon_view
 @write
