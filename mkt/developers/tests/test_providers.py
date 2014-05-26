@@ -8,7 +8,8 @@ from nose.tools import eq_, ok_, raises
 from amo.tests import app_factory, TestCase
 from constants.payments import (PROVIDER_BANGO, PROVIDER_BOKU,
                                 PROVIDER_REFERENCE)
-from mkt.developers.models import PaymentAccount, SolitudeSeller
+from mkt.developers.models import (AddonPaymentAccount, PaymentAccount,
+                                   SolitudeSeller)
 from mkt.developers.providers import (account_check, Bango, Boku, get_provider,
                                       Reference)
 from mkt.site.fixtures import fixture
@@ -137,6 +138,23 @@ class TestBango(Patcher, TestCase):
         eq_(self.bango.terms_retrieve(Mock())['text'],
             u'&lt;script&gt;foo&lt;/script&gt;<h3></h3>')
 
+    def test_delete_payment_account_calls_client(self):
+        product_uri = '/product/1/'
+        app = app_factory()
+        account = self.make_account()
+        addon_account = AddonPaymentAccount.objects.create(
+            payment_account=account,
+            product_uri=product_uri,
+            addon=app
+        )
+
+        delete_mock = Mock()
+        self.boku_patcher.by_url.return_value = delete_mock
+
+        self.boku.delete_seller_product(addon_account)
+        self.boku_patcher.by_url.assert_called_with(product_uri)
+        ok_(delete_mock.delete.called)
+
 
 class TestReference(Patcher, TestCase):
     fixtures = fixture('user_999')
@@ -263,7 +281,7 @@ class TestReference(Patcher, TestCase):
             'name': unicode(app.name),
             'uuid': ANY,
         })
-
+    
 
 class TestBoku(Patcher, TestCase):
     fixtures = fixture('user_999')
@@ -378,3 +396,20 @@ class TestBoku(Patcher, TestCase):
         }
         with self.assertRaises(ValueError):
             self.boku.product_create(account, app)
+
+    def test_delete_payment_account_calls_client(self):
+        product_uri = '/product/1/'
+        app = app_factory()
+        account = self.make_account()
+        addon_account = AddonPaymentAccount.objects.create(
+            payment_account=account,
+            product_uri=product_uri,
+            addon=app
+        )
+
+        delete_mock = Mock()
+        self.boku_patcher.by_url.return_value = delete_mock
+
+        self.boku.delete_seller_product(addon_account)
+        self.boku_patcher.by_url.assert_called_with(product_uri)
+        ok_(delete_mock.delete.called)

@@ -95,6 +95,9 @@ class PaymentAccount(amo.models.ModelBase):
         log.info('Soft-deleted payment account (uri: %s)' % self.uri)
 
         for acc_ref in account_refs:
+            # Unlink the account in Solitude from the app
+            self.get_provider().delete_seller_product(acc_ref)
+
             if (disable_refs and
                     not acc_ref.addon.has_multiple_payment_accounts()):
                 log.info('Changing app status to NULL for app: {0}'

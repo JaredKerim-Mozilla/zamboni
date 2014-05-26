@@ -127,6 +127,9 @@ class Provider(object):
         """
         return ''
 
+    def delete_seller_product(self, account):
+        raise NotImplementedError
+
 
 class Bango(Provider):
     """
@@ -248,6 +251,9 @@ class Bango(Provider):
     def get_portal_url(self, app_slug=None):
         url = 'mkt.developers.apps.payments.bango_portal_from_addon'
         return reverse(url, args=[app_slug]) if app_slug else ''
+
+    def delete_seller_product(self, account):
+        self.client.by_url(account.product_uri).delete()
 
 
 class Reference(Provider):
@@ -408,6 +414,9 @@ class Boku(Provider):
             ).format(products=existing_boku_products['objects']))
 
         return boku_product['resource_uri']
+
+    def delete_seller_product(self, account):
+        self.client.by_url(account.product_uri).delete()
 
     def get_portal_url(self, app_slug=None):
         return settings.BOKU_PORTAL
