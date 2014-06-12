@@ -339,6 +339,20 @@ class TestVerify(amo.tests.TestCase):
         eq_(res['status'], 'invalid')
         eq_(res['reason'], 'WRONG_STOREDATA')
 
+    def test_multiple_purchases_of_same_inapp_product_are_valid(self):
+        contribution1 = self.make_inapp_contribution()
+
+        res = self.verify_receipt_data(get_sample_inapp_receipt(contribution1))
+        eq_(res['status'], 'ok', res)
+
+        contribution2 = self.make_inapp_contribution()
+
+        eq_(contribution1.inapp_product, contribution2.inapp_product)
+        ok_(contribution1 != contribution2)
+
+        res = self.verify_receipt_data(get_sample_inapp_receipt(contribution2))
+        eq_(res['status'], 'ok', res)
+
     def test_crack_receipt(self):
         # Check that we can decode our receipt and get a dictionary back.
         self.app.update(type=amo.ADDON_WEBAPP, manifest_url='http://a.com')
