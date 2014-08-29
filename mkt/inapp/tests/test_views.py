@@ -121,6 +121,8 @@ class TestInAppProductViewSetUnauthorized(BaseInAppProductViewSetTests):
 
     def test_detail(self):
         product = self.create_product()
+        import ipdb
+        ipdb.set_trace()
         response = self.get(self.detail_url(product.guid))
         eq_(response.status_code, status.HTTP_200_OK)
         eq_(response.json['guid'], product.guid)

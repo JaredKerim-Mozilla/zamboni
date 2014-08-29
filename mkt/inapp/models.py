@@ -2,17 +2,17 @@ import json
 
 from django.db import models
 
+from amo.fields import StringUUIDField
 from amo.models import ModelBase
 from mkt.prices.models import Price
 from mkt.translations.fields import save_signal, TranslatedField
-from mkt.webapps.models import UUIDModelMixin
 
 
-class InAppProduct(UUIDModelMixin, ModelBase):
+class InAppProduct(ModelBase):
     """
     An item which is purchasable from within a marketplace app.
     """
-    guid = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    guid = StringUUIDField(unique=True, auto=True, hyphenate=True)
     webapp = models.ForeignKey('webapps.WebApp', null=True, blank=True)
     price = models.ForeignKey(Price)
     name = TranslatedField(require_locale=False)

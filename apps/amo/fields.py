@@ -5,8 +5,17 @@ from django.db import models
 from django.forms import fields
 
 from tower import ugettext as _
+from uuidfield.fields import UUIDField
 
 from amo.widgets import ColorWidget
+
+
+class StringUUIDField(UUIDField):
+
+    def to_python(self, value):
+        if not value:
+            return None
+        return str(super(StringUUIDField, self).to_python(value))
 
 
 class DecimalCharField(models.DecimalField):

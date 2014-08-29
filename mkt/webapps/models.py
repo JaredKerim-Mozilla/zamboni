@@ -33,6 +33,7 @@ import amo.models
 import mkt
 from amo.decorators import skip_cache, use_master, write
 from amo.helpers import absolutify
+from amo.fields import StringUUIDField
 from amo.storage_utils import copy_stored_file
 from amo.utils import (attach_trans_dict, find_language, JSONEncoder,
                        slugify, smart_path, sorted_groupby, timer,
@@ -191,7 +192,7 @@ class Addon(amo.models.OnChangeMixin, amo.models.ModelBase):
     LOCALES = [(translation.to_locale(k).replace('_', '-'), v) for k, v in
                do_dictsort(settings.LANGUAGES)]
 
-    guid = models.CharField(max_length=255, unique=True, null=True)
+    guid = StringUUIDField(unique=True, auto=True, hyphenate=True)
     slug = models.CharField(max_length=30, unique=True, null=True)
     # This column is only used for webapps, so they can have a slug namespace
     # separate from addons and personas.
@@ -1358,40 +1359,10 @@ class WebappManager(amo.models.ManagerBase):
             return self.get(app_slug=identifier)
 
 
-class UUIDModelMixin(object):
-    """
-    A mixin responsible for assigning a uniquely generated
-    UUID at save time.
-    """
-
-    def save(self, *args, **kwargs):
-        self.assign_uuid()
-        return super(UUIDModelMixin, self).save(*args, **kwargs)
-
-    def assign_uuid(self):
-        """Generates a UUID if self.guid is not already set."""
-        if not hasattr(self, 'guid'):
-            raise AttributeError('A UUIDModel must contain a charfield called guid')
-
-        if not self.guid:
-            max_tries = 10
-            tried = 1
-            guid = str(uuid.uuid4())
-            while tried <= max_tries:
-                if not type(self).objects.filter(guid=guid).exists():
-                    self.guid = guid
-                    break
-                else:
-                    guid = str(uuid.uuid4())
-                    tried += 1
-            else:
-                raise ValueError('Could not auto-generate a unique UUID')
-
-
 # We use super(Addon, self) on purpose to override expectations in Addon that
 # are not true for Webapp. Webapp is just inheriting so it can share the db
 # table.
-class Webapp(UUIDModelMixin, Addon):
+class Webapp(Addon):
 
     objects = WebappManager()
     with_deleted = WebappManager(include_deleted=True)
